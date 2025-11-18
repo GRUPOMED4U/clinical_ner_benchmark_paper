@@ -1,3 +1,26 @@
+# Clinical Named Entity Recognition in the Portuguese Language: A Benchmark of Modern BERT Models and LLMs
+
+This repository contains the source code and experimental setup for the research paper "Clinical named entity recognition in the Portuguese language: a benchmark of modern BERT models and LLMs".
+
+## 1. Abstract
+
+Clinical notes hold valuable unstructured information, yet benchmarks for Named Entity Recognition (NER) in Portuguese remain scarce. This study evaluates BERT models and Large Language Models (LLMs) for clinical NER in Portuguese and tests strategies to address multilabel imbalance.
+
+We compared BioBERTpt, BERTimbau, ModernBERT, and mmBERT with LLMs such as GPT-5 and Gemini-2.5, using the public SemClinBr corpus and a private breast-cancer dataset. Models were trained under identical conditions and evaluated with precision, recall, and F1-scores.
+
+Key Findings:
+- mmBERT-base achieved the best results (micro $F1=0.76$), outperforming other models in the SemClinBr.
+- Both BioBERTpt and mmBERT performed well on the private breast cancer dataset.
+- Iterative stratification improved class balance and overall performance.
+- Multilingual BERT models perform strongly for Portuguese clinical NER and offer the advantage of running locally with limited resources when compared to LLMs.
+- Data contamination cannot be excluded in the case of mmBERT models.
+
+## 2. How to use this repository
+
+### Requesting access to the SemClinBr dataset
+
+## 3. How to reproduce the study results
+
 ## Perguntas de pesquisa
 
 Quais as técnicas com melhor performance para extração de entidades clínicas no contexto da oncologia?
