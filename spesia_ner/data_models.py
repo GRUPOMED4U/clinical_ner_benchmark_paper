@@ -1,6 +1,6 @@
 from pathlib import Path
 from pydantic import BaseModel
-from typing import List, Literal, Set, Union
+from typing import List, Literal, Set
 import xml.etree.ElementTree as ET
 import json
 
@@ -30,10 +30,6 @@ class AgentGeneratedRecord(BaseModel):
 
 
 class Annotation(BaseModel):
-    """
-    Representa uma anotação de texto com posições, tags e grupos semânticos.
-    """
-
     id: str
     tags: Set[str] = set()
     semantic_groups: Set[str] = set()
@@ -43,22 +39,19 @@ class Annotation(BaseModel):
 
 
 class Record(BaseModel):
-    """
-    Representa um registro de texto anotado, contendo o texto completo
-    e suas anotações (entidades, rótulos, etc.).
-    """
-
     text: str
     annotations: List[Annotation]
-
-    # ==============================================================
-    #  MÉTODO 1 - XML (SemClinBr)
-    # ==============================================================
 
     @classmethod
     def from_xml(cls, file_path: Path | str) -> "Record":
         """
-        Lê um arquivo XML no formato SemClinBr e retorna um Record.
+        Parse an XML file into a Record object.
+
+        Args:
+            file_path (Path | str): Path to the XML file.
+
+        Returns:
+            Record: A Record object containing the text and annotations from the XML file.
         """
         if isinstance(file_path, str):
             file_path = Path(file_path)
@@ -82,41 +75,33 @@ class Record(BaseModel):
 
         return cls(text=text, annotations=annotations)
 
-    # ==============================================================
-    #  MÉTODO 2 - JSON (Argilla)
-    # ==============================================================
-
     @classmethod
     def from_argilla_json(cls, file_path: Path) -> list["Record"]:
         """
-        Lê um arquivo JSON exportado do Argilla (formato dict com IDs como chaves).
-        Exemplo de estrutura:
-        {
-        "<uuid>": {
-            "fields": {"text": "..."},
-            "responses": {
-            "annotations": [
-                {"value": [{"label": "TAG", "start": 10, "end": 20}]}
-            ]
-            }
-        }
-        }
-        """
-        import json
+        Parse an Argilla JSON file into a list of Record objects.
 
+        Args:
+            file_path (Path): Path to the Argilla JSON file.
+
+        Returns:
+            list[Record]: A list of Record objects containing the text and annotations from the Argilla JSON file.
+
+        Notes:
+            - The function assumes that the JSON file is in the same format as the one exported by the Argilla annotation tool.
+            - The function processes each block of annotations by one user as a separate record.
+        """
         with open(file_path, encoding="utf-8") as f:
             data = json.load(f)
 
         records = []
         for record_id, record_data in data.items():
-            # segurança: só processa se tiver 'fields' e 'responses'
+            # skip non-dict records
             if not isinstance(record_data, dict):
                 continue
 
             fields = record_data.get("fields", {})
             text = fields.get("text", "").strip()
 
-            # tenta localizar as anotações (em responses.annotations)
             responses = record_data.get("responses", {})
             annotations_per_user = responses.get("annotations", [])
 
@@ -146,22 +131,21 @@ class Record(BaseModel):
 
         return records
 
-    # ==============================================================
-    #  MÉTODO 3 - JSON/JSONL (Docanno)
-    # ==============================================================
-
     @classmethod
     def from_doccano_jsonl(cls, file_path: Path) -> list["Record"]:
         """
-        Lê um arquivo JSONL exportado do Doccano.
-        Suporta diferentes variantes de export:
-        - {"text": "...", "labels": [[start, end, "TAG"], ...]}
-        - {"text": "...", "label": [[start, end, "TAG"], ...]}
-        - {"text": "...", "entities": [{"start":..,"end":..,"label":..}, ...]}
-        - {"text": "...", "annotations": [{"start_offset":..,"end_offset":..,"label":..}, ...]}
-        """
-        import json
+        Parse a Doccano JSONL file into a list of Record objects.
 
+        Args:
+            file_path (Path): Path to the Doccano JSONL file.
+
+        Returns:
+            list[Record]: A list of Record objects containing the text and annotations from the Doccano JSONL file.
+
+        Notes:
+            - The function assumes that the JSONL file is in the same format as the one exported by the Doccano annotation tool.
+            - The function processes each block of annotations by one user as a separate record.
+        """
         records = []
         with open(file_path, "r", encoding="utf-8") as f:
             for line in f:
@@ -181,13 +165,13 @@ class Record(BaseModel):
                 )
 
                 for i, item in enumerate(raw_labels):
-                    # 1. Caso lista [start, end, label]
+                    # 1. List case [start, end, label]
                     if isinstance(item, (list, tuple)) and len(item) >= 3:
                         start, end, tag = item[:3]
                         # Fix index offset
                         start -= 1
                         end -= 1
-                    # 2. Caso dict com start/end/label
+                    # 2. Dict case start/end/label
                     elif isinstance(item, dict):
                         start = (
                             item.get("start")
@@ -220,18 +204,25 @@ class Record(BaseModel):
 
         return records
 
-    # ==============================================================
-    #  MÉTODO 4 - DETECÇÃO AUTOMÁTICA
-    # ==============================================================
-
     @classmethod
     def from_file(cls, file_path: Path | str) -> list["Record"]:
         """
-        Detecta automaticamente o formato de arquivo (XML, JSON Argilla ou JSONL Doccano)
-        e chama o parser apropriado.
-        """
-        import json
+        Parse a file containing annotations into a list of Record objects.
 
+        Supports the following formats:
+        - XML (Argilla format)
+        - JSON (Argilla format and Doccano JSON format)
+        - JSONL (Doccano JSONL format)
+
+        Args:
+            file_path (Path | str): Path to the file containing the annotations.
+
+        Returns:
+            list[Record]: A list of Record objects containing the text and annotations from the file.
+
+        Raises:
+            ValueError: If the file format is not recognized.
+        """
         if isinstance(file_path, str):
             file_path = Path(file_path)
 
@@ -246,12 +237,11 @@ class Record(BaseModel):
             try:
                 with open(file_path, "r", encoding="utf-8") as f:
                     data = json.load(f)
-                # Dicionário Argilla: chaves UUID → registros
+
                 if isinstance(data, dict) and "fields" in next(iter(data.values())):
                     return cls.from_argilla_json(file_path)
-                # Lista Doccano JSON (pouco comum)
+
                 elif isinstance(data, list) and any("text" in d for d in data):
-                    # converte lista simples tipo [{"text": ..., "labels": [...]}]
                     return [
                         cls(
                             text=item["text"],
@@ -287,9 +277,9 @@ class Record(BaseModel):
                         for item in data
                     ]
                 else:
-                    raise ValueError("Formato JSON não reconhecido.")
+                    raise ValueError("Unkown JSON pattern.")
             except Exception as e:
-                print(f"[WARN] Erro ao processar {file_path.name}: {e}")
+                print(f"[WARN] Error while processing {file_path.name}: {e}")
                 return []
 
         # --- JSONL ---
@@ -297,16 +287,14 @@ class Record(BaseModel):
             return cls.from_doccano_jsonl(file_path)
 
         else:
-            raise ValueError(f"Formato de arquivo não suportado: {suffix}")
-
-    # ==============================================================
-    #  PROPRIEDADES AUXILIARES
-    # ==============================================================
+            raise ValueError(f"Unsupported file format: {suffix}")
 
     @property
     def tags(self) -> Set[str]:
         """
-        Retorna o conjunto de todas as tags contidas nas anotações.
+        Returns a set of all tags in the record's annotations.
+
+        :return: Set[str]
         """
         tags = set()
         for annotation in self.annotations:
@@ -316,7 +304,9 @@ class Record(BaseModel):
     @property
     def semantic_groups(self) -> Set[str]:
         """
-        Retorna o conjunto de todos os grupos semânticos contidos nas anotações.
+        Returns a set of all semantic groups in the record's annotations.
+
+        :return: Set[str]
         """
         semantic_groups = set()
         for annotation in self.annotations:
@@ -326,6 +316,15 @@ class Record(BaseModel):
     def to_agent_annotations(
         self, label_type: Literal["tags", "semantic_groups"]
     ) -> AgentAnnotationsList:
+        """
+        Converts the record's annotations to AgentAnnotationsList.
+
+        Args:
+            label_type (Literal["tags", "semantic_groups"]): The type of label to extract from the annotations.
+
+        Returns:
+            AgentAnnotationsList: A list of AgentAnnotation objects.
+        """
         agent_annotations = AgentAnnotationsList(annotations=[])
         for annotation in self.annotations:
             for label in getattr(annotation, label_type):
@@ -341,6 +340,17 @@ class Record(BaseModel):
         agent_annotations: AgentAnnotationsList,
         label_type: Literal["tags", "semantic_groups"],
     ) -> "Record":
+        """
+        Converts an AgentAnnotationsList to a Record.
+
+        Args:
+            text (str): The text associated with the record.
+            agent_annotations (AgentAnnotationsList): The list of AgentAnnotation objects to convert.
+            label_type (Literal["tags", "semantic_groups"]): The type of label to extract from the annotations.
+
+        Returns:
+            Record: A new Record object with the converted annotations.
+        """
         new_record = cls(text=text, annotations=[])
 
         for i, annotation in enumerate(agent_annotations.annotations):
