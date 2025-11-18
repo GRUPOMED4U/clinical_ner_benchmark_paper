@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 from unittest.mock import MagicMock, patch
 
@@ -62,3 +63,41 @@ def test_annotations_merge(annotator):
     assert second_lung_cancer.start == 20
     assert second_lung_cancer.end == 24
     assert second_lung_cancer.tags == {"DISEASE"}
+
+
+@pytest.mark.parametrize(
+    "predictions, input_ids, expected",
+    [
+        (
+            np.array([[[True], [False]]]),  # 1 batch, 2 tokens, 1 label
+            [101, 102],  # 2 tokens
+            [[Annotation(id="0", tags={"CLASS_0"}, start=0, end=5, text="Hello")]],
+        ),
+        (
+            np.array([[[True], [False]]]),
+            [101, 102, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # Add a lot of padding tokens
+            [[Annotation(id="0", tags={"CLASS_0"}, start=0, end=5, text="Hello")]],
+        ),
+    ],
+)
+def test_map_prediction_to_tokens(annotator, predictions, input_ids, expected):
+    # Mocking the batch encoding
+    fake_batch_encoding = MagicMock()
+    fake_batch_encoding.input_ids = input_ids
+
+    # Mock tokenizer decode to return known strings to calculate offsets
+    annotator.tokenizer.decode.side_effect = ["Hello", "World"]
+
+    # Act
+    mapped = annotator._map_prediction_to_tokens(predictions, [fake_batch_encoding])
+
+    # Assert
+    # We expect 1 annotation because only the first token was True
+    for tested, expected in zip(mapped, expected):
+        assert len(tested) == len(expected)
+        for annotation, expected_annotation in zip(tested, expected):
+            assert annotation.id == expected_annotation.id
+            assert annotation.tags == expected_annotation.tags
+            assert annotation.start == expected_annotation.start
+            assert annotation.end == expected_annotation.end
+            assert annotation.text == expected_annotation.text
