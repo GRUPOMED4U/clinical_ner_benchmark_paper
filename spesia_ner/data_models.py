@@ -168,9 +168,7 @@ class Record(BaseModel):
                     # 1. List case [start, end, label]
                     if isinstance(item, (list, tuple)) and len(item) >= 3:
                         start, end, tag = item[:3]
-                        # Fix index offset
-                        start -= 1
-                        end -= 1
+
                     # 2. Dict case start/end/label
                     elif isinstance(item, dict):
                         start = (
