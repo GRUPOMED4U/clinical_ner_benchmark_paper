@@ -13,3 +13,4 @@ results_fast
 /iterative_vs_random
 /results/*/checkpoints
 /results/*/*/checkpoints 
+.env
