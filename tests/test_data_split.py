@@ -17,9 +17,9 @@ def test_same_text_not_split_across_partitions(tmp_path, monkeypatch):
     """
     # create dummy files
     dummy_files = []
-    dummy_files += ['a.text' for _ in range(100)]
-    dummy_files += ['b.text' for _ in range(100)]
-    dummy_files += ['c.text' for _ in range(100)]
+    dummy_files += ["a.text" for _ in range(100)]
+    dummy_files += ["b.text" for _ in range(100)]
+    dummy_files += ["c.text" for _ in range(100)]
 
     for fname in dummy_files:
         (tmp_path / fname).write_text("dummy")
@@ -29,11 +29,11 @@ def test_same_text_not_split_across_partitions(tmp_path, monkeypatch):
 
     def fake_from_file(path):
         name = Path(path).name
-        if 'a' in name:
+        if "a" in name:
             rec = FakeRecord("A_TEXT", ["TAG_A"])
-        elif 'b' in name:
+        elif "b" in name:
             rec = FakeRecord("B_TEXT", ["TAG_A"])
-        elif 'c' in name:
+        elif "c" in name:
             rec = FakeRecord("C_TEXT", ["TAG_A"])
         else:
             rec = FakeRecord("DIFFERENT_TEXT", ["TAG_A"])
@@ -66,6 +66,7 @@ def test_same_text_not_split_across_partitions(tmp_path, monkeypatch):
     # 0 (text excluded from this split) or equal to the total count (all copies included).
     for text, tot in total_counts.items():
         in_split = split_counts.get(text, 0)
-        assert in_split in (0, tot), (
-            f"Text '{text}' was partially split: {in_split}/{tot} in '{dataset.split}'"
-        )
+        assert in_split in (
+            0,
+            tot,
+        ), f"Text '{text}' was partially split: {in_split}/{tot} in '{dataset.split}'"
