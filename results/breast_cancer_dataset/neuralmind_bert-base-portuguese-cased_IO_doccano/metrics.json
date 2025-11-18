@@ -1,0 +1,21 @@
+{
+    "eval_loss": 0.5560463070869446,
+    "eval_best_threshold": 0.02,
+    "eval_macro_precision": 0.0028953771289537715,
+    "eval_macro_recall": 0.051965065502183404,
+    "eval_macro_f1": 0.005485134823692095,
+    "eval_macro_auc": 0.5473925709123457,
+    "eval_micro_precision": 0.028953771289537713,
+    "eval_micro_recall": 0.03532205402196498,
+    "eval_micro_f1": 0.03182243615456612,
+    "eval_micro_auc": 0.44805360662697036,
+    "eval_runtime": 2.1765,
+    "eval_samples_per_second": 45.945,
+    "eval_steps_per_second": 5.973,
+    "epoch": 23.0,
+    "model_id": "neuralmind/bert-base-portuguese-cased",
+    "annotation_type": "IO",
+    "batch_effective": 50,
+    "patience": 10,
+    "early_stopping_delta": 0.0001
+}

@@ -1,0 +1,21 @@
+{
+    "eval_loss": 0.5910051465034485,
+    "eval_best_threshold": 0.04,
+    "eval_macro_precision": 0.002107089737233515,
+    "eval_macro_recall": 0.020531400966183576,
+    "eval_macro_f1": 0.003821942446043165,
+    "eval_macro_auc": 0.6379217939027919,
+    "eval_micro_precision": 0.0421417947446703,
+    "eval_micro_recall": 0.02520011858879336,
+    "eval_micro_f1": 0.03153988868274583,
+    "eval_micro_auc": 0.7057241729049964,
+    "eval_runtime": 4.1358,
+    "eval_samples_per_second": 24.179,
+    "eval_steps_per_second": 3.143,
+    "epoch": 17.0,
+    "model_id": "neuralmind/bert-large-portuguese-cased",
+    "annotation_type": "BIO",
+    "batch_effective": 50,
+    "patience": 10,
+    "early_stopping_delta": 0.0001
+}

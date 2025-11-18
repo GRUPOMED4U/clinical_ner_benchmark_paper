@@ -1,0 +1,45 @@
+[project]
+name = "research-ner-leaderboard"
+version = "0.1.0"
+description = "Benchmark de modelos NER clínicos (Spesia)"
+readme = "README.md"
+requires-python = ">=3.12"
+
+dependencies = [
+    # Núcleo científico e ML
+    "torch==2.9.0",
+    "torchvision==0.24.0",
+    "torchaudio==2.9.0",
+    "transformers==4.57.1",
+    "accelerate>=1.10.1",
+    "dotenv>=0.9.9",
+    "google-genai>=1.46.0",
+    "ipykernel>=7.0.1",
+    "ipywidgets>=8.1.7",
+    "jsonlines>=4.0.0",
+    "langchain-ollama>=1.0.0",
+    "langchain-openai>=1.0.1",
+    "langchain[google-genai]>=1.0.2",
+    "matplotlib>=3.10.7",
+    "numpy>=2.3.3",
+    "pandas>=2.3.3",
+    "pydantic>=2.12.2",
+    "pyyaml>=6.0.3",
+    "pytest>=8.4.2",
+    "scikit-learn>=1.7.2",
+    "scikit-multilearn>=0.2.0",
+    "tabulate>=0.9.0",
+    "tqdm>=4.67.1",
+    "transformers>=4.57.1",
+]
+
+[tool.uv]
+index-strategy = "unsafe-best-match"
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+
+[[tool.uv.index]]
+name = "pypi"
+url = "https://pypi.org/simple"

@@ -1,0 +1,21 @@
+{
+    "eval_loss": 0.26928624510765076,
+    "eval_best_threshold": 0.25,
+    "eval_macro_precision": 0.7562495376722154,
+    "eval_macro_recall": 0.7363460179882022,
+    "eval_macro_f1": 0.7444694631962152,
+    "eval_macro_auc": 0.9794390337415487,
+    "eval_micro_precision": 0.799925205684368,
+    "eval_micro_recall": 0.7465968586387435,
+    "eval_micro_f1": 0.7723415779021484,
+    "eval_micro_auc": 0.9777269725397958,
+    "eval_runtime": 2.4023,
+    "eval_samples_per_second": 41.627,
+    "eval_steps_per_second": 5.411,
+    "epoch": 30.0,
+    "model_id": "jhu-clsp/mmBERT-base",
+    "annotation_type": "IO",
+    "batch_effective": 50,
+    "patience": 10,
+    "early_stopping_delta": 0.0001
+}

@@ -1,0 +1,15 @@
+.venv
+__pycache__
+output
+.env
+plots
+models
+metrics
+examples/lang_extract.ipynb
+argilla-test-1.png
+results_fast
+/best_model
+/.pytest_cache
+/iterative_vs_random
+/results/*/checkpoints
+/results/*/*/checkpoints

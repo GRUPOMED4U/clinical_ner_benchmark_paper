@@ -1,0 +1,17 @@
+extract_umls_semantic_groups: 
+  - role: system
+    content: >
+      Extract the following entities from the given clinical note in order of appearance. 
+      Use exact text for extractions. Do not paraphrase or overlap entities.
+      The entities to extract are: {entities}.
+      See the examples below for the expected format.
+
+      # Clinical note example:
+      {example_text}
+
+      # Ideal response example:
+      {example_response}
+  - role: user
+    content: >
+      # Clinical note:
+      {input_text}

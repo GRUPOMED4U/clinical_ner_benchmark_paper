@@ -1,0 +1,21 @@
+{
+    "eval_loss": 0.2575228214263916,
+    "eval_best_threshold": 0.27,
+    "eval_macro_precision": 0.7446316328616087,
+    "eval_macro_recall": 0.7137243645326664,
+    "eval_macro_f1": 0.7267982725530044,
+    "eval_macro_auc": 0.9545014788693343,
+    "eval_micro_precision": 0.7671854734111544,
+    "eval_micro_recall": 0.7255443115608708,
+    "eval_micro_f1": 0.7457840819542947,
+    "eval_micro_auc": 0.9620351151154185,
+    "eval_runtime": 2.3317,
+    "eval_samples_per_second": 42.888,
+    "eval_steps_per_second": 5.575,
+    "epoch": 40.0,
+    "model_id": "pucpr/biobertpt-bio",
+    "annotation_type": "IO",
+    "batch_effective": 50,
+    "patience": 10,
+    "early_stopping_delta": 0.0001
+}

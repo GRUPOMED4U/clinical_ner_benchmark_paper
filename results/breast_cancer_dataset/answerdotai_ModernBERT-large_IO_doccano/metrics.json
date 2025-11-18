@@ -1,0 +1,21 @@
+{
+    "eval_loss": 0.33397647738456726,
+    "eval_best_threshold": 0.13,
+    "eval_macro_precision": 0.7340089792535727,
+    "eval_macro_recall": 0.7010514985385756,
+    "eval_macro_f1": 0.7104401488686244,
+    "eval_macro_auc": 0.9754106025384928,
+    "eval_micro_precision": 0.7461700210273355,
+    "eval_micro_recall": 0.7513611615245009,
+    "eval_micro_f1": 0.7487565938206481,
+    "eval_micro_auc": 0.971374582676565,
+    "eval_runtime": 2.4678,
+    "eval_samples_per_second": 40.521,
+    "eval_steps_per_second": 5.268,
+    "epoch": 25.0,
+    "model_id": "answerdotai/ModernBERT-large",
+    "annotation_type": "IO",
+    "batch_effective": 50,
+    "patience": 10,
+    "early_stopping_delta": 0.0001
+}
