@@ -4,16 +4,31 @@ from typing import List, Literal, Set, Union
 import xml.etree.ElementTree as ET
 import json
 
+
 class AgentAnnotation(BaseModel):
     label: str
     text: str
 
+
 class AgentAnnotationsList(BaseModel):
     annotations: List[AgentAnnotation]
 
-    def to_record(self, text: str, label_type: Literal['tags', 'semantic_groups']) -> 'Record':
+    def to_record(
+        self, text: str, label_type: Literal["tags", "semantic_groups"]
+    ) -> "Record":
         return Record.from_agent_annotations(text, self, label_type)
-    
+
+
+class AgentGeneratedRecord(BaseModel):
+    text: str
+    annotations: List[AgentAnnotation]
+
+    def to_record(
+        self, label_type: Literal["tags", "semantic_groups"] = "tags"
+    ) -> "Record":
+        return Record.from_agent_annotations(self.text, self, label_type)
+
+
 class Annotation(BaseModel):
     """
     Representa uma anotação de texto com posições, tags e grupos semânticos.
@@ -104,7 +119,6 @@ class Record(BaseModel):
             # tenta localizar as anotações (em responses.annotations)
             responses = record_data.get("responses", {})
             annotations_per_user = responses.get("annotations", [])
-            
 
             for user_annotations in annotations_per_user:
                 # each block contains annotations by one user
@@ -308,16 +322,25 @@ class Record(BaseModel):
         for annotation in self.annotations:
             semantic_groups.update(annotation.semantic_groups)
         return semantic_groups
-    
-    def to_agent_annotations(self, label_type: Literal['tags', 'semantic_groups']) -> AgentAnnotationsList:
+
+    def to_agent_annotations(
+        self, label_type: Literal["tags", "semantic_groups"]
+    ) -> AgentAnnotationsList:
         agent_annotations = AgentAnnotationsList(annotations=[])
         for annotation in self.annotations:
             for label in getattr(annotation, label_type):
-                agent_annotations.annotations.append(AgentAnnotation(label=label, text=annotation.text))
+                agent_annotations.annotations.append(
+                    AgentAnnotation(label=label, text=annotation.text)
+                )
         return agent_annotations
-    
+
     @classmethod
-    def from_agent_annotations(cls, text: str, agent_annotations: AgentAnnotationsList, label_type: Literal['tags', 'semantic_groups']) -> "Record":
+    def from_agent_annotations(
+        cls,
+        text: str,
+        agent_annotations: AgentAnnotationsList,
+        label_type: Literal["tags", "semantic_groups"],
+    ) -> "Record":
         new_record = cls(text=text, annotations=[])
 
         for i, annotation in enumerate(agent_annotations.annotations):
@@ -325,10 +348,14 @@ class Record(BaseModel):
             if start_index != -1:
                 new_annotation = Annotation(
                     id=str(i),
-                    tags=set([annotation.label]) if label_type == 'tags' else set(),
-                    semantic_groups=set([annotation.label]) if label_type == 'semantic_groups' else set(),
+                    tags=set([annotation.label]) if label_type == "tags" else set(),
+                    semantic_groups=(
+                        set([annotation.label])
+                        if label_type == "semantic_groups"
+                        else set()
+                    ),
                     start=start_index,
-                    end=start_index+len(annotation.text),
+                    end=start_index + len(annotation.text),
                     text=annotation.text,
                 )
                 new_record.annotations.append(new_annotation)

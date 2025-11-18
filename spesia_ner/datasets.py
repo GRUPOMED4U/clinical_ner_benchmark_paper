@@ -13,7 +13,6 @@ import random
 
 from .data_models import Record
 
- 
 
 # ==============================================================
 # Utility functions
@@ -38,7 +37,7 @@ class ClinicalRecordsDataset(Dataset):
 
     def __init__(
         self,
-        path: str | Path,
+        path: str | Path | None = None,
         tokenizer: AutoTokenizer | None = None,
         label_type: Literal["tags", "semantic_groups"] = "tags",
         tags_to_consider: list[str] = [],
@@ -46,7 +45,7 @@ class ClinicalRecordsDataset(Dataset):
         labels_to_ignore: list[str] = [],
         max_length=512,
         random_seed=42,
-        split: Literal['train', 'val', 'test'] | None = None,
+        split: Literal["train", "val", "test"] | None = None,
         split_ratio={"train": 0.6, "val": 0.2, "test": 0.2},
         min_samples_per_label: int = 10,
         semantic_group_standard: Literal["UMLS"] = "UMLS",
@@ -90,61 +89,56 @@ class ClinicalRecordsDataset(Dataset):
         self.begin_token_weight_scaler = begin_token_weight_scaler
         self.data_split_method = data_split_method
 
-        # --------------------------
-        # Load files
-        # --------------------------
-        self._load_all_records()
+        if self.path is not None:
+            # --------------------------
+            # Load files
+            # --------------------------
+            self._load_all_records()
 
-        # --------------------------
-        # Get labels
-        # --------------------------
-        self._get_records_tags()
+            # --------------------------
+            # Get labels
+            # --------------------------
+            self._get_records_tags()
 
-        if self.label_type == "semantic_groups":
-            self._get_semantic_groups()
-            self._map_tags_to_semantic_groups(standard=self.semantic_group_standard)
+            if self.label_type == "semantic_groups":
+                self._get_semantic_groups()
+                self._map_tags_to_semantic_groups(standard=self.semantic_group_standard)
 
-        # --------------------------
-        # Define labels
-        # --------------------------
-        self.tags_to_consider = self.tags if not tags_to_consider else tags_to_consider
-        self.tags_to_consider = [
-            t for t in self.tags_to_consider if t not in self.labels_to_ignore
-        ]
+            # --------------------------
+            # Define labels
+            # --------------------------
+            self.tags_to_consider = (
+                self.tags if not tags_to_consider else tags_to_consider
+            )
+            self.tags_to_consider = [
+                t for t in self.tags_to_consider if t not in self.labels_to_ignore
+            ]
 
-        # if self.label_type == "tags":
-        #     assert len(self.tags_to_consider) > 0, "No valid tags found."
+            self.semantic_groups_to_consider = (
+                self.semantic_groups
+                if not semantic_groups_to_consider
+                else semantic_groups_to_consider
+            )
+            self.semantic_groups_to_consider = [
+                t
+                for t in self.semantic_groups_to_consider
+                if t not in self.labels_to_ignore
+            ]
 
-        self.semantic_groups_to_consider = (
-            self.semantic_groups
-            if not semantic_groups_to_consider
-            else semantic_groups_to_consider
-        )
-        self.semantic_groups_to_consider = [
-            t
-            for t in self.semantic_groups_to_consider
-            if t not in self.labels_to_ignore
-        ]
+            # --------------------------
+            # Create label map
+            # --------------------------
+            self._create_label_map()
+            self.num_labels = len(self.labels_to_consider)
 
-        # if self.label_type == "semantic_groups":
-        #     assert (
-        #         len(self.semantic_groups_to_consider) > 0
-        #     ), "No valid semantic groups found."
-
-        # --------------------------
-        # Create label map
-        # --------------------------
-        self._create_label_map()
-        self.num_labels = len(self.labels_to_consider)
-
-        # --------------------------
-        # Split data
-        # --------------------------
-        if self.split is not None:
-            self._split_records()
-        else:
-            self.records = self.all_records
-            self.all_records = []
+            # --------------------------
+            # Split data
+            # --------------------------
+            if self.split is not None:
+                self._split_records()
+            else:
+                self.records = self.all_records
+                self.all_records = []
 
     # ==============================================================
     # Main methods
@@ -170,9 +164,9 @@ class ClinicalRecordsDataset(Dataset):
             self._random_data_split()
         elif self.data_split_method == "iterative":
             self._iterative_stratification()
-    
+
     def _random_data_split(self) -> None:
-        random.seed(self.random_seed) 
+        random.seed(self.random_seed)
         random.shuffle(self.all_records)
 
         # Compute split indices
@@ -181,13 +175,13 @@ class ClinicalRecordsDataset(Dataset):
         n_val = int(n_total * self.split_ratio["val"])
 
         split_records = {
-            "train": self.all_records[:n_train], 
-            "val": self.all_records[n_train:n_train + n_val], 
-            "test": self.all_records[n_train + n_val:]
-            }
+            "train": self.all_records[:n_train],
+            "val": self.all_records[n_train : n_train + n_val],
+            "test": self.all_records[n_train + n_val :],
+        }
 
         self.records = split_records[self.split]
-    
+
     def _iterative_stratification(self) -> None:
         np.random.seed(self.random_seed)
 
@@ -212,7 +206,10 @@ class ClinicalRecordsDataset(Dataset):
         labels_to_ignore = counts[counts < self.min_samples_per_label].index.tolist()
         labels_to_keep = counts[counts >= self.min_samples_per_label].index.tolist()
         self.labels_to_ignore = labels_to_ignore
-        print("Ignored labels during data split due to low sample count:", labels_to_ignore)
+        print(
+            "Ignored labels during data split due to low sample count:",
+            labels_to_ignore,
+        )
 
         ## Select only frequent labels
         keep_idx = [getattr(self, self.label_type).index(l) for l in labels_to_keep]
@@ -237,186 +234,214 @@ class ClinicalRecordsDataset(Dataset):
 
         ## Define records to include in this split
         records_to_include_in_split = set(records_split[self.split])
-        self.records = [r for r in self.all_records if r.text in records_to_include_in_split]
+        self.records = [
+            r for r in self.all_records if r.text in records_to_include_in_split
+        ]
 
         ## Save memory
         self.all_records = []
 
-
-    def adaptive_oversample(self, target_ratio: float = 0.8, random_state=42, max_replication: int = 15):
+    def adaptive_oversample(
+        self, target_ratio: float = 0.8, random_state=42, max_replication: int = 15
+    ):
         """
         Adaptive oversampling using roulette wheel selection for individual sampling.
         Prioritizes records with multiple minority labels through probabilistic selection.
-        
+
         Args:
             target_ratio: Percentage of the average to be reached (0.8 = 80%)
             random_state: Seed for reproducibility
             max_replication: Maximum number of replications per record
         """
 
-        if self.split != 'train':
+        if self.split != "train":
             return
-        
+
         original_state = random.getstate() if random_state is not None else None
         if random_state is not None:
             random.seed(random_state)
             np.random.seed(random_state)
-        
+
         label_count_dict = self.get_label_count(self.label_type).to_dict()
         total_ocurrencias = sum(label_count_dict.values())
         num_labels = len(label_count_dict)
         avg_ocurrencias = total_ocurrencias / num_labels
         target_count = int(avg_ocurrencias * target_ratio)
-              
-        #Identify which labels need oversampling
+
+        # Identify which labels need oversampling
         labels_needing_oversample = {}
         for label, count in label_count_dict.items():
             if count < target_count:
                 deficit = target_count - count
-                replication_factor = max(1, min(max_replication, deficit // (count + 1)))
+                replication_factor = max(
+                    1, min(max_replication, deficit // (count + 1))
+                )
                 labels_needing_oversample[label] = {
-                    'current_count': count,
-                    'target_count': target_count,
-                    'deficit': deficit,
-                    'replication_factor': replication_factor
+                    "current_count": count,
+                    "target_count": target_count,
+                    "deficit": deficit,
+                    "replication_factor": replication_factor,
                 }
-        
-        #WHEEL ROULETTE
+
+        # WHEEL ROULETTE
         minority_labels_set = set(labels_needing_oversample.keys())
-        
+
         high_value_records = []
         medium_value_records = []
         low_value_records = []
-        
+
         for record in self.records:
             record_labels = getattr(record, self.label_type)
-            minority_labels_in_record = [label for label in record_labels if label in minority_labels_set]
-            
+            minority_labels_in_record = [
+                label for label in record_labels if label in minority_labels_set
+            ]
+
             if not minority_labels_in_record:
                 continue
-                
+
             num_minority_labels = len(minority_labels_in_record)
-            
+
             if num_minority_labels >= 3:
-                high_value_records.append({
-                    'record': record,
-                    'minority_labels': minority_labels_in_record,
-                    'fitness': 3.0
-                })
+                high_value_records.append(
+                    {
+                        "record": record,
+                        "minority_labels": minority_labels_in_record,
+                        "fitness": 3.0,
+                    }
+                )
             elif num_minority_labels == 2:
-                other_labels = [label for label in record_labels if label not in minority_labels_set]
-                
+                other_labels = [
+                    label for label in record_labels if label not in minority_labels_set
+                ]
+
                 if len(other_labels) >= 3:
-                    medium_value_records.append({
-                        'record': record,
-                        'minority_labels': minority_labels_in_record,
-                        'fitness': 1.5  
-                    })
+                    medium_value_records.append(
+                        {
+                            "record": record,
+                            "minority_labels": minority_labels_in_record,
+                            "fitness": 1.5,
+                        }
+                    )
                 else:
-                    low_value_records.append({
-                        'record': record,
-                        'minority_labels': minority_labels_in_record,
-                        'fitness': 1.0  
-                    })
-        
+                    low_value_records.append(
+                        {
+                            "record": record,
+                            "minority_labels": minority_labels_in_record,
+                            "fitness": 1.0,
+                        }
+                    )
+
         all_candidates = high_value_records + medium_value_records + low_value_records
-        
+
         if not all_candidates:
             print("⚠️ There is no samples of minorities classes for oversampling")
             return
-        
+
         def wheel_roulette_selection(candidates, num_selections):
             if not candidates:
                 return []
-            
-            total_fitness = sum(candidate['fitness'] for candidate in candidates)
-            
+
+            total_fitness = sum(candidate["fitness"] for candidate in candidates)
+
             wheel = []
             cumulative = 0.0
-            
+
             for candidate in candidates:
-                probability = candidate['fitness'] / total_fitness
+                probability = candidate["fitness"] / total_fitness
                 cumulative += probability
                 wheel.append((cumulative, candidate))
-            
+
             selected = []
             for _ in range(num_selections):
                 spin = random.random()
-                
+
                 for threshold, candidate in wheel:
                     if spin <= threshold:
                         selected.append(candidate)
                         break
-            
+
             return selected
-        
+
         replication_needs = {}
         for label, info in labels_needing_oversample.items():
-            replication_needs[label] = info['deficit']
-        
+            replication_needs[label] = info["deficit"]
+
         new_records = self.records.copy()
         replication_stats = {label: 0 for label in labels_needing_oversample.keys()}
-        remaining_deficits = {label: info['deficit'] for label, info in labels_needing_oversample.items()}
-        
+        remaining_deficits = {
+            label: info["deficit"] for label, info in labels_needing_oversample.items()
+        }
+
         max_rounds = 15
         for round_num in range(max_rounds):
             if all(deficit <= 0 for deficit in remaining_deficits.values()):
                 break
-                
+
             total_remaining_deficit = sum(remaining_deficits.values())
             if total_remaining_deficit <= 0:
                 break
-                
-            max_replicas_per_round = min(total_remaining_deficit, len(all_candidates) * 2)
-            
-            selected_candidates = wheel_roulette_selection(all_candidates, max_replicas_per_round)
-            
+
+            max_replicas_per_round = min(
+                total_remaining_deficit, len(all_candidates) * 2
+            )
+
+            selected_candidates = wheel_roulette_selection(
+                all_candidates, max_replicas_per_round
+            )
+
             for candidate in selected_candidates:
-                record = candidate['record']
-                minority_labels = candidate['minority_labels']
-                
+                record = candidate["record"]
+                minority_labels = candidate["minority_labels"]
+
                 needed_for_any_label = any(
-                    remaining_deficits.get(label, 0) > 0 
-                    for label in minority_labels
+                    remaining_deficits.get(label, 0) > 0 for label in minority_labels
                 )
-                
+
                 if needed_for_any_label:
                     new_records.append(record)
-                    
+
                     for label in minority_labels:
-                        if label in replication_stats and remaining_deficits.get(label, 0) > 0:
+                        if (
+                            label in replication_stats
+                            and remaining_deficits.get(label, 0) > 0
+                        ):
                             replication_stats[label] += 1
-                            remaining_deficits[label] = max(0, remaining_deficits[label] - 1)
-            
+                            remaining_deficits[label] = max(
+                                0, remaining_deficits[label] - 1
+                            )
+
         remaining_significant_deficits = {
-            label: deficit for label, deficit in remaining_deficits.items() 
-            if deficit > len(all_candidates) // 2  
+            label: deficit
+            for label, deficit in remaining_deficits.items()
+            if deficit > len(all_candidates) // 2
         }
-        
+
         if remaining_significant_deficits:
             for label, deficit in remaining_significant_deficits.items():
                 label_candidates = [
-                    candidate for candidate in all_candidates 
-                    if label in candidate['minority_labels']
+                    candidate
+                    for candidate in all_candidates
+                    if label in candidate["minority_labels"]
                 ]
-                
+
                 if label_candidates:
-                    selected_for_label = wheel_roulette_selection(label_candidates, deficit)
-                    
+                    selected_for_label = wheel_roulette_selection(
+                        label_candidates, deficit
+                    )
+
                     for candidate in selected_for_label:
-                        new_records.append(candidate['record'])
+                        new_records.append(candidate["record"])
                         replication_stats[label] += 1
                         remaining_deficits[label] -= 1
-                        
+
                         if remaining_deficits[label] <= 0:
                             break
-        
+
         if random_state is not None:
             random.shuffle(new_records)
-        
+
         self.records = new_records
-        
-        
+
     # ==============================================================
     # Label getters and mapping methods
     # ==============================================================
@@ -491,7 +516,10 @@ class ClinicalRecordsDataset(Dataset):
 
     def __getitem__(
         self, index: int
-    ) -> transformers.tokenization_utils_base.BatchEncoding | List[transformers.tokenization_utils_base.BatchEncoding]:
+    ) -> (
+        transformers.tokenization_utils_base.BatchEncoding
+        | List[transformers.tokenization_utils_base.BatchEncoding]
+    ):
         if isinstance(index, int):
             record = self.records[index]
             encoded_text, token_vectors = self._spans_to_multilabels(record)
@@ -499,7 +527,7 @@ class ClinicalRecordsDataset(Dataset):
             encoded_text["labels"] = labels
             del encoded_text["offset_mapping"]
             return encoded_text
-        
+
         elif isinstance(index, slice):
             encoded_texts = []
             records = self.records[index]
@@ -626,12 +654,13 @@ class ClinicalRecordsDataset(Dataset):
     #  Data export methods
     # ==============================================================
 
-    def export(self, 
-               path: Path | str, 
-               format: Literal["jsonl"],
-               include_annotations: bool = False,
-               exclude_duplicates: bool = True,
-               ) -> None:
+    def export(
+        self,
+        path: Path | str,
+        format: Literal["jsonl"],
+        include_annotations: bool = False,
+        exclude_duplicates: bool = True,
+    ) -> None:
         """
         Exports the record to a file in the specified format and path.
         """
@@ -639,18 +668,19 @@ class ClinicalRecordsDataset(Dataset):
             path = Path(path)
 
         records_to_export = self.records
-        
+
         if format == "jsonl":
             records_in_jsonl_format = []
             seen = set()
 
             for r in records_to_export:
-                if r.text == '': continue
+                if r.text == "":
+                    continue
 
                 r_to_export = {}
                 r_to_export["text"] = r.text
                 r_to_export["label"] = []
-                
+
                 if include_annotations:
                     labels = []
                     for ann in r.annotations:
@@ -664,7 +694,7 @@ class ClinicalRecordsDataset(Dataset):
                 seen.add(r_to_export["text"])
                 records_in_jsonl_format.append(r_to_export)
 
-            with jsonlines.open(path, mode='w') as writer:
+            with jsonlines.open(path, mode="w") as writer:
                 for obj in records_in_jsonl_format:
                     writer.write(obj)
 
@@ -672,6 +702,7 @@ class ClinicalRecordsDataset(Dataset):
 # ==============================================================
 # Data Collator
 # ==============================================================
+
 
 class DataCollatorForMultiLabelTokenClassification:
     """
@@ -722,8 +753,8 @@ class DataCollatorForMultiLabelTokenClassification:
                 "attention_mask": torch.stack(batch_attention_mask).to(self.device),
                 "labels": torch.stack(batch_labels).to(self.device),
             }
-        
+
         return {
-                "input_ids": torch.stack(batch_input_ids).to(self.device),
-                "attention_mask": torch.stack(batch_attention_mask).to(self.device),
-            }
+            "input_ids": torch.stack(batch_input_ids).to(self.device),
+            "attention_mask": torch.stack(batch_attention_mask).to(self.device),
+        }
