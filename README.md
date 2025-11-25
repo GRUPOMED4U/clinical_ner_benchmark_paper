@@ -17,6 +17,87 @@ Key Findings:
 
 ## 2. How to use this repository
 
+### — Installation and environment setup
+
+Objective: explain how to prepare a local environment (Windows PowerShell) to run the repository scripts and models.
+
+Essential prerequisites:
+- Python `>= 3.12`
+- Git
+- (Optional) CUDA compatible with the PyTorch wheels if you plan to use a GPU
+
+Dependencies are declared in `pyproject.toml` and their resolved versions are available in `uv.lock`.
+
+Steps (PowerShell):
+
+1) Clone the repository and enter the project folder
+
+```powershell
+git clone <repo-url>
+cd .\clinical_ner_benchmark_paper\clinical_ner_benchmark_paper
+```
+
+2) Create and activate a virtual environment
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+```
+
+3) Install PyTorch (choose according to your machine)
+
+- Example (CUDA 12.8 — adjust according to your CUDA version):
+
+```powershell
+pip install --index-url https://download.pytorch.org/whl/cu128 torch==2.9.0 torchvision==0.24.0 torchaudio==2.9.0
+```
+
+- Example (CPU-only):
+
+```powershell
+pip install --index-url https://download.pytorch.org/whl/cpu torch==2.9.0 torchvision==0.24.0 torchaudio==2.9.0
+```
+
+See https://pytorch.org/get-started/locally/ for the correct command for your setup.
+
+4) Install the remaining dependencies
+
+Install the main packages used by the project (you can also use your preferred dependency manager to install directly from `pyproject.toml` and `uv.lock`):
+
+```powershell
+pip install python-dotenv google-genai langchain-ollama langchain-openai "langchain[google-genai]" transformers==4.57.1 accelerate matplotlib numpy pandas pydantic pyyaml pytest scikit-learn scikit-multilearn tabulate tqdm pytest-mock jsonlines
+```
+
+If you prefer to use a dependency manager such as `poetry` or `uv`, follow that tool's workflow to install dependencies from `pyproject.toml` and `uv.lock`.
+
+
+6) Quick example: Using the bundled fake dataset
+
+To learn how to use the `spesia_ner` package classes and functions, open and run the example notebook:
+
+```
+examples/dummy_data_example.ipynb
+```
+
+This notebook demonstrates:
+- Loading the bundled dummy dataset (`data/dummy_data/fake_data.jsonl`)
+- Creating `ClinicalRecordsDataset` objects with different annotation schemes (IO and BIO)
+- Splitting data into train/val/test sets using iterative stratification
+- Integrating HuggingFace tokenizers
+- Accessing tokenized samples and computing label statistics
+- Exporting datasets to different formats
+
+All operations in this notebook use the fake data, making it fully reproducible without requiring access to private clinical datasets.
+
+**Note:** If PowerShell execution policy prevents activating `Activate.ps1`, you can relax the policy for the current user:
+
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+The repository includes filename sanitization to avoid common Windows path issues.
+
 ### Requesting access to the SemClinBr dataset
 
 ## 3. How to reproduce the study results
