@@ -9,6 +9,27 @@ This module provides tests to verify that:
 """
 
 import pytest
+import importlib
+
+# Skip entire module if heavy ML dependencies are not available in the test environment.
+# Use a safe check because test suite may inject lightweight stubs into sys.modules.
+missing_deps = False
+try:
+    torch_spec = importlib.util.find_spec("torch")
+    trans_spec = importlib.util.find_spec("transformers")
+    if torch_spec is None or trans_spec is None:
+        missing_deps = True
+except Exception:
+    missing_deps = True
+
+if missing_deps:
+    import pytest
+
+    pytest.skip(
+        "Skipping model smoke tests — heavy dependencies (torch/transformers) not installed",
+        allow_module_level=True,
+    )
+
 import torch
 from pathlib import Path
 from transformers import AutoTokenizer, AutoModelForTokenClassification
@@ -183,10 +204,16 @@ class TestTokenizerIntegration:
         assert "attention_mask" in sample
         assert "labels" in sample
 
-        # Check tensor types and shapes
-        assert isinstance(sample["input_ids"], torch.Tensor)
-        assert sample["input_ids"].ndim == 1
-        assert sample["labels"].shape == sample["input_ids"].shape
+        # Check tensor/list types and shapes (accept both torch.Tensor and plain lists)
+        if isinstance(sample["input_ids"], torch.Tensor):
+            assert sample["input_ids"].ndim == 1
+            assert sample["labels"].shape == sample["input_ids"].shape
+        else:
+            # tokenizer may return lists for input_ids/attention_mask; ensure shapes align
+            assert isinstance(sample["input_ids"], list)
+            assert isinstance(sample["attention_mask"], list)
+            assert len(sample["input_ids"]) == len(sample["attention_mask"])
+            assert sample["labels"].shape[0] == len(sample["input_ids"])
 
 
 class TestModelLoading:
@@ -246,8 +273,20 @@ class TestModelLoading:
 
             # Get a sample and run forward pass
             sample = dataset[0]
-            input_ids = sample["input_ids"].unsqueeze(0)
-            attention_mask = sample["attention_mask"].unsqueeze(0)
+            # Ensure tensors for model forward (tokenizers/collators may return lists)
+            if isinstance(sample["input_ids"], list):
+                input_ids = torch.tensor(
+                    sample["input_ids"], dtype=torch.long
+                ).unsqueeze(0)
+            else:
+                input_ids = sample["input_ids"].unsqueeze(0)
+
+            if isinstance(sample["attention_mask"], list):
+                attention_mask = torch.tensor(
+                    sample["attention_mask"], dtype=torch.long
+                ).unsqueeze(0)
+            else:
+                attention_mask = sample["attention_mask"].unsqueeze(0)
 
             # Use CPU for testing
             device = "cpu"
@@ -319,8 +358,23 @@ class TestEndToEnd:
 
             for dataset, name in [(train_dataset, "train"), (val_dataset, "val")]:
                 sample = dataset[0]
-                input_ids = sample["input_ids"].unsqueeze(0).to(device)
-                attention_mask = sample["attention_mask"].unsqueeze(0).to(device)
+                if isinstance(sample["input_ids"], list):
+                    input_ids = (
+                        torch.tensor(sample["input_ids"], dtype=torch.long)
+                        .unsqueeze(0)
+                        .to(device)
+                    )
+                else:
+                    input_ids = sample["input_ids"].unsqueeze(0).to(device)
+
+                if isinstance(sample["attention_mask"], list):
+                    attention_mask = (
+                        torch.tensor(sample["attention_mask"], dtype=torch.long)
+                        .unsqueeze(0)
+                        .to(device)
+                    )
+                else:
+                    attention_mask = sample["attention_mask"].unsqueeze(0).to(device)
 
                 with torch.no_grad():
                     outputs = model(input_ids=input_ids, attention_mask=attention_mask)
@@ -362,8 +416,23 @@ class TestEndToEnd:
             model.eval()
 
             sample = dataset[0]
-            input_ids = sample["input_ids"].unsqueeze(0).to(device)
-            attention_mask = sample["attention_mask"].unsqueeze(0).to(device)
+            if isinstance(sample["input_ids"], list):
+                input_ids = (
+                    torch.tensor(sample["input_ids"], dtype=torch.long)
+                    .unsqueeze(0)
+                    .to(device)
+                )
+            else:
+                input_ids = sample["input_ids"].unsqueeze(0).to(device)
+
+            if isinstance(sample["attention_mask"], list):
+                attention_mask = (
+                    torch.tensor(sample["attention_mask"], dtype=torch.long)
+                    .unsqueeze(0)
+                    .to(device)
+                )
+            else:
+                attention_mask = sample["attention_mask"].unsqueeze(0).to(device)
 
             with torch.no_grad():
                 outputs = model(input_ids=input_ids, attention_mask=attention_mask)

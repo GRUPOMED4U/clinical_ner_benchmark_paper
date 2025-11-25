@@ -17,62 +17,71 @@ Key Findings:
 
 ## 2. How to use this repository
 
-### — Installation and environment setup
+### Prerequisites
 
-Objective: explain how to prepare a local environment (Windows PowerShell) to run the repository scripts and models.
+Before setting up the environment, ensure you have the following installed:
 
-Essential prerequisites:
-- Python `>= 3.12`
-- Git
-- (Optional) CUDA compatible with the PyTorch wheels if you plan to use a GPU
+- **Python** `>= 3.12`
+- **Git**
+- **`uv`** for dependency management. [Install uv](https://docs.astral.sh/uv/getting-started/installation/)
+- (Optional) **CUDA** compatible with the PyTorch wheels if you plan to use a GPU
 
-Dependencies are declared in `pyproject.toml` and their resolved versions are available in `uv.lock`.
+All project dependencies are declared in `pyproject.toml` and their resolved versions are available in `uv.lock`.
 
-Steps (PowerShell):
+### Installation and environment setup
 
-1) Clone the repository and enter the project folder
+This section explains how to prepare a local environment (Windows PowerShell) to run the repository scripts and models using `uv`.
+
+#### Step 1: Clone the repository
 
 ```powershell
 git clone <repo-url>
 cd .\clinical_ner_benchmark_paper\clinical_ner_benchmark_paper
 ```
 
-2) Create and activate a virtual environment
+#### Step 2: Sync dependencies with `uv`
 
 ```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
+uv sync
 ```
 
-3) Install PyTorch (choose according to your machine)
+This command creates a virtual environment and installs all dependencies from `pyproject.toml` and `uv.lock`.
 
-- Example (CUDA 12.8 — adjust according to your CUDA version):
+#### Step 3: Install PyTorch (choose according to your machine)
+
+**Example (CUDA 12.8 — adjust according to your CUDA version):**
 
 ```powershell
-pip install --index-url https://download.pytorch.org/whl/cu128 torch==2.9.0 torchvision==0.24.0 torchaudio==2.9.0
+uv pip install --index-url https://download.pytorch.org/whl/cu128 torch==2.9.0 torchvision==0.24.0 torchaudio==2.9.0
 ```
 
-- Example (CPU-only):
+**Example (CPU-only):**
 
 ```powershell
-pip install --index-url https://download.pytorch.org/whl/cpu torch==2.9.0 torchvision==0.24.0 torchaudio==2.9.0
+uv pip install --index-url https://download.pytorch.org/whl/cpu torch==2.9.0 torchvision==0.24.0 torchaudio==2.9.0
 ```
 
 See https://pytorch.org/get-started/locally/ for the correct command for your setup.
 
-4) Install the remaining dependencies
 
-Install the main packages used by the project (you can also use your preferred dependency manager to install directly from `pyproject.toml` and `uv.lock`):
+**Running the tests**
+
+- **Scripts:** Use `./scripts/run_tests.ps1` (Windows PowerShell) or `./scripts/run_tests.sh` (Linux/macOS) to create a virtual environment, install a minimal set of test dependencies and run `pytest`.
+- **Activate `venv`:** PowerShell: `& .\.venv\Scripts\Activate.ps1` then run `pytest -q` to execute the test suite interactively.
+- **Smoke tests (optional):** These tests require heavy ML libraries (PyTorch, `transformers`). Install them before running smoke tests. Example CPU-only install: `uv pip install --index-url https://download.pytorch.org/whl/cpu torch==2.9.0 torchvision==0.24.0 torchaudio==2.9.0` and `uv pip install transformers`. Run `pytest tests/test_model_smoke.py` to run only the smoke tests.
+- **Without `uv` (alternative):** Create a venv manually: `python -m venv .venv; & .\.venv\Scripts\Activate.ps1; python -m pip install -U pip setuptools wheel` then install `pytest` and any other dependencies you need.
+- **CI:** A GitHub Actions workflow is provided at `.github/workflows/ci-tests.yml` and runs the minimal test set on push/pull requests.
+
+### Running scripts and notebooks
+
+After environment setup, run scripts and notebooks using `uv run`:
 
 ```powershell
-pip install python-dotenv google-genai langchain-ollama langchain-openai "langchain[google-genai]" transformers==4.57.1 accelerate matplotlib numpy pandas pydantic pyyaml pytest scikit-learn scikit-multilearn tabulate tqdm pytest-mock jsonlines
+uv run python examples/dummy_data_example.ipynb
+uv run python benchmark/run_benchmark.py
 ```
 
-If you prefer to use a dependency manager such as `poetry` or `uv`, follow that tool's workflow to install dependencies from `pyproject.toml` and `uv.lock`.
-
-
-6) Quick example: Using the bundled fake dataset
+### Quick example: Using the bundled fake dataset
 
 To learn how to use the `spesia_ner` package classes and functions, open and run the example notebook:
 
@@ -90,15 +99,13 @@ This notebook demonstrates:
 
 All operations in this notebook use the fake data, making it fully reproducible without requiring access to private clinical datasets.
 
-**Note:** If PowerShell execution policy prevents activating `Activate.ps1`, you can relax the policy for the current user:
-
-```powershell
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-```
-
 The repository includes filename sanitization to avoid common Windows path issues.
 
-### Requesting access to the SemClinBr dataset
+### Accessing datasets
+
+#### SemClinBr dataset
+
+Request access to the SemClinBr dataset following the official documentation.
 
 ## 3. How to reproduce the study results
 
@@ -296,3 +303,30 @@ Micro F1-score: 0.704.
     - Método de extração de entidades clínicas utilizando embeddings de modelos do tipo BERT. Contexto de cardiologia.
 - Recent Advances in Named Entity Recognition: A Comprehensive Survey and Comparative Study
     - https://arxiv.org/html/2401.10825v3#S2
+
+## Running tests
+
+This repository includes lightweight test runner scripts and a GitHub Actions workflow so tests can be reproduced without installing heavy ML libraries.
+
+PowerShell (Windows):
+
+```powershell
+./scripts/run_tests.ps1
+```
+
+POSIX (Linux/macOS):
+
+```bash
+chmod +x scripts/run_tests.sh
+./scripts/run_tests.sh
+```
+
+Alternatively, activate the project's virtual environment and run `pytest` directly:
+
+```powershell
+# PowerShell
+& .\.venv\Scripts\Activate.ps1
+pytest -q
+```
+
+CI: a GitHub Actions workflow is available at `.github/workflows/ci-tests.yml` and runs the test suite on push/pull requests using a minimal set of test dependencies.

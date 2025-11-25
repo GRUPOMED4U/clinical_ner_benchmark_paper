@@ -1,4 +1,63 @@
+import sys
+import types
 from pathlib import Path
+
+# Inject lightweight stubs for heavy optional dependencies so datasets import works
+if "torch" not in sys.modules:
+    _torch = types.ModuleType("torch")
+
+    class _Cuda:
+        @staticmethod
+        def is_available():
+            return False
+
+    _torch.cuda = _Cuda()
+    _torch.device = lambda x: x
+    _torch.tensor = lambda *a, **k: None
+    _torch.long = int
+    _torch.stack = lambda x: x
+    _torch.zeros = lambda *args, **kwargs: 0
+    # provide torch.utils.data.Dataset so `from torch.utils.data import Dataset` works
+    utils_mod = types.ModuleType("torch.utils")
+    data_mod = types.ModuleType("torch.utils.data")
+
+    class Dataset:
+        pass
+
+    data_mod.Dataset = Dataset
+    sys.modules["torch"] = _torch
+    sys.modules["torch.utils"] = utils_mod
+    sys.modules["torch.utils.data"] = data_mod
+
+if "transformers" not in sys.modules:
+    _tf = types.ModuleType("transformers")
+    _tf.AutoTokenizer = object
+    _tf.AutoModelForTokenClassification = object
+    token_utils = types.ModuleType("transformers.tokenization_utils_base")
+
+    class BatchEncoding:
+        pass
+
+    token_utils.BatchEncoding = BatchEncoding
+    _tf.tokenization_utils_base = token_utils
+    sys.modules["transformers"] = _tf
+    sys.modules["transformers.tokenization_utils_base"] = token_utils
+
+if "skmultilearn" not in sys.modules:
+    _sk = types.ModuleType("skmultilearn")
+    _ms = types.ModuleType("skmultilearn.model_selection")
+
+    def iterative_train_test_split(X, y, test_size=0.2):
+        n = int(len(X) * (1 - test_size))
+        X_temp = X[:n]
+        y_temp = y[:n]
+        X_test = X[n:]
+        y_test = y[n:]
+        return X_temp, y_temp, X_test, y_test
+
+    _ms.iterative_train_test_split = iterative_train_test_split
+    sys.modules["skmultilearn"] = _sk
+    sys.modules["skmultilearn.model_selection"] = _ms
 
 from spesia_ner import datasets
 
