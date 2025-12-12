@@ -128,9 +128,3 @@ This dataset was not made publicly available for privacy reasons.
 |-- /tests                   # Automated tests for sanity check
 |-- prompts.yaml             # Prompts used for LLM generations
 ```
-
-## How to cite this repository
-
-```
-
-```
