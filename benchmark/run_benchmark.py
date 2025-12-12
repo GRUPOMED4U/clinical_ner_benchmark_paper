@@ -47,11 +47,12 @@ def main():
     # =========================================================
     # CONFIGURAÇÕES DE TREINAMENTO
     # =========================================================
-    
+
     MODEL_ID = args.model_id
     ANNOT_TYPE = args.annotation_type
 
-    DATASET_PATH = Path("data/Spesia/doccano/annotated_records")
+    # Use the bundled dummy dataset for public examples/tests
+    DATASET_PATH = Path("data/dummy_data")
 
     # Sanitiza o nome do modelo antes de criar diretório
     safe_model_name = sanitize_filename(MODEL_ID)
@@ -63,7 +64,7 @@ def main():
     PATIENCE = 10
     DELTA = 1e-4
     MAX_LEN = 512
-    METRIC_FOR_BEST_MODEL = "eval_micro_f1" 
+    METRIC_FOR_BEST_MODEL = "eval_micro_f1"
 
     LABELS_TO_IGNORE = []
     LABELS_TO_CONSIDER = []
